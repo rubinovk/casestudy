@@ -1,0 +1,11 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="casestudy:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/casestudy_jar</output-path>
+    <root id="archive" name="casestudy.jar">
+      <element id="module-output" name="casestudy" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/opencsv-3.9.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/java-string-similarity-0.23.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/jcip-annotations-1.0.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

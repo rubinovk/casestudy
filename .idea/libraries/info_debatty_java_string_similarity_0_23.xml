@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="info.debatty:java-string-similarity:0.23" type="repository">
+    <properties maven-id="info.debatty:java-string-similarity:0.23" />
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/java-string-similarity-0.23.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/jcip-annotations-1.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
