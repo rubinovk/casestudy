@@ -26,31 +26,17 @@ class CompanyScore {
 
     public int compute(List<RecordScore> recordScoreList) {
         float aggregate_delay_score = 0.0f;
-        int paid_records = 0;
-        int delayed_records = 0;
         for (RecordScore recordScore : recordScoreList) {
-            float score = recordScore
+            aggregate_delay_score += recordScore
                     .compute(max_observed_delay, max_observed_amount, delay_weight, amount_weight);
-
-            if (score == 1) {
-                paid_records++;
-            } else {
-                delayed_records++;
-                aggregate_delay_score += score;
-            }
         }
-        return finalScore(aggregate_delay_score, recordScoreList.size(), paid_records,
-                delayed_records);
+        return finalScore(aggregate_delay_score, recordScoreList.size());
     }
 
     /**
      * Weighted arithmetic mean of scores. Weighed by the numbers of delayed and paid scores.
      */
-    private int finalScore(float aggregate_delay_score, int totalNumberOfRecords,
-            int numberOfPaidRecords, int numberOfDelayedRecords) {
-        assert numberOfDelayedRecords + numberOfPaidRecords == totalNumberOfRecords;
-
-        return (int) (((aggregate_delay_score + numberOfPaidRecords /*each counts as 1*/) /
-                (float) totalNumberOfRecords) * 100);
+    private int finalScore(float aggregate_score, int totalNumberOfRecords) {
+        return (int) (((aggregate_score) / (float) totalNumberOfRecords) * 100);
     }
 }
