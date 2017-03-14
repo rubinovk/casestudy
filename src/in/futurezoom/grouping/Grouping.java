@@ -24,6 +24,8 @@ public class Grouping {
     // we're interested in typos with edit distance 1
     private static final int EDIT_DISTANCE = 1;
 
+    private HashMap<String, Integer> vatFreqMap = new HashMap<>();
+
 
     public Grouping(Groups groups) {
         this.groups = groups;
@@ -55,17 +57,23 @@ public class Grouping {
      * @param nextLine
      */
     void sortNewRecord(String[] nextLine) {
-        Record record = new Record(nextLine[0], nextLine[1], nextLine[2], nextLine[3], nextLine[4]);
+        final String vat = nextLine[0];
+        Record record = new Record(vat, nextLine[1], nextLine[2], nextLine[3], nextLine[4]);
 
         // only numbers are significant for comparison and make the vat code unique
-        String intVat = Util.numberifyVat(nextLine[0]);
+        String intVat = Util.numberifyVat(vat);
 
         //  does not consider suspicious records with swapped numbers, they are valid
-        if (Util.isValidVat(nextLine[0], groups)) {
+        if (Util.isValidVat(vat, groups)) {
             addRecordToGroups(intVat, record, groups.validGroups());
+            updateFrequencyMap(vat);
         } else {
             addRecordToGroups(intVat, record, groups.invalidGroups());
         }
+    }
+
+    private void updateFrequencyMap(String vat) {
+        vatFreqMap.put(vat, vatFreqMap.get(vat) == null ? 0 : vatFreqMap.get(vat) + 1);
     }
 
 
@@ -89,6 +97,8 @@ public class Grouping {
                     addRecordsToGroups(validKey, groups.invalidGroups().get(invalidKey),
                             groups.validGroups());
 
+                    updateFrequencyMap(validKey);
+
                     toBeRemoved.add(invalidKey);
                     break;
                 } else if (invalidKey.length() == groups.getVatNumLength()) {
@@ -97,6 +107,9 @@ public class Grouping {
                             .formatNumberKey(invalidKey, groups));
                     addRecordsToGroups(invalidKey, groups.invalidGroups().get(invalidKey),
                             groups.validGroups());
+
+                    updateFrequencyMap(invalidKey);
+
                     toBeRemoved.add(invalidKey);
                     break;
                 }
@@ -118,6 +131,17 @@ public class Grouping {
     public void processSuspiciousGroups() {
 
         List<String> toBeRemoved = new ArrayList<>();
+
+
+        if (!vatFreqMap.containsValue(1)) {
+            return;
+        }
+        vatFreqMap.values().removeIf(value -> value != 1);
+
+        for (String key : vatFreqMap.keySet()) {
+            System.out.println(key);
+        }
+
         for (String suspiciousGroupValidKey : groups.validGroups().keySet()) {
             if (groups.validGroups().get(suspiciousGroupValidKey).size() == 1) {
                 // this is a suspicious group, only one entry

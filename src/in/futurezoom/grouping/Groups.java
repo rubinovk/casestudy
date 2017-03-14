@@ -12,6 +12,9 @@ public interface Groups {
 
     HashMap<String, List<Record>> invalidGroups();
 
+
+    HashMap<String, Boolean> getValidInvalidVatMap();
+
     String getVatPrefix();
 
     String getVatRegex();

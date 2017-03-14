@@ -37,4 +37,6 @@ public class Main {
         scoring.calculateScores();
 
     }
+
+
 }
