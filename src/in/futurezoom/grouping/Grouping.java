@@ -6,7 +6,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import in.futurezoom.Util;
 import info.debatty.java.stringsimilarity.Damerau;
@@ -23,9 +25,6 @@ public class Grouping {
     private Damerau damerauAlgorithm = new Damerau();
     // we're interested in typos with edit distance 1
     private static final int EDIT_DISTANCE = 1;
-
-    private HashMap<String, Integer> vatFreqMap = new HashMap<>();
-
 
     public Grouping(Groups groups) {
         this.groups = groups;
@@ -65,17 +64,11 @@ public class Grouping {
 
         //  does not consider suspicious records with swapped numbers, they are valid
         if (Util.isValidVat(vat, groups)) {
-            addRecordToGroups(intVat, record, groups.validGroups());
-            updateFrequencyMap(vat);
+            groups.addRecordToValidGroups(intVat, record);
         } else {
-            addRecordToGroups(intVat, record, groups.invalidGroups());
+            groups.addRecordToInvalidGroups(intVat, record);
         }
     }
-
-    private void updateFrequencyMap(String vat) {
-        vatFreqMap.put(vat, vatFreqMap.get(vat) == null ? 0 : vatFreqMap.get(vat) + 1);
-    }
-
 
     /**
      * Assumption: in theory there can be several matches for mistyped entries. Here we take the
@@ -94,22 +87,16 @@ public class Grouping {
                     System.out.println("Similar keys will be merged: " + Util
                             .formatNumberKey(validKey, groups) + " " + "and " + Util
                             .formatNumberKey(invalidKey, groups) + "");
-                    addRecordsToGroups(validKey, groups.invalidGroups().get(invalidKey),
-                            groups.validGroups());
-
-                    updateFrequencyMap(validKey);
-
+                    groups.addRecordsToValidGroups(validKey,
+                            groups.invalidGroups().get(invalidKey));
                     toBeRemoved.add(invalidKey);
                     break;
                 } else if (invalidKey.length() == groups.getVatNumLength()) {
                     // keys that have 9 numbers are valid, just do not have matching valid ones
                     System.out.println("Corrected valid key to be saved: " + Util
                             .formatNumberKey(invalidKey, groups));
-                    addRecordsToGroups(invalidKey, groups.invalidGroups().get(invalidKey),
-                            groups.validGroups());
-
-                    updateFrequencyMap(invalidKey);
-
+                    groups.addRecordsToValidGroups(invalidKey,
+                            groups.invalidGroups().get(invalidKey));
                     toBeRemoved.add(invalidKey);
                     break;
                 }
@@ -132,38 +119,50 @@ public class Grouping {
 
         List<String> toBeRemoved = new ArrayList<>();
 
-
+        // todo  - externalize
+        final HashMap<String, Integer> vatFreqMap = groups.getVatFreqMap();
         if (!vatFreqMap.containsValue(1)) {
             return;
         }
-        vatFreqMap.values().removeIf(value -> value != 1);
+        // O(n)
+        vatFreqMap.entrySet().removeIf(entry -> entry.getValue() != 1);
 
-        for (String key : vatFreqMap.keySet()) {
-            System.out.println(key);
-        }
+        Set<String> singleKeys = new HashSet<>();
+        singleKeys.addAll(vatFreqMap.keySet());
 
-        for (String suspiciousGroupValidKey : groups.validGroups().keySet()) {
-            if (groups.validGroups().get(suspiciousGroupValidKey).size() == 1) {
-                // this is a suspicious group, only one entry
-                // check Damerau distance with the other keys
-                for (String normalKey : groups.validGroups().keySet()) {
-                    if (damerauAlgorithm
-                            .distance(suspiciousGroupValidKey, normalKey) == EDIT_DISTANCE) {
-                        System.out.println("Suspiciously similar groups will be merged: " + Util
-                                .formatNumberKey(normalKey, groups) + " " + "and" + " " + Util
-                                .formatNumberKey(suspiciousGroupValidKey, groups));
-                        // merge the groups
-                        addRecordsToGroups(normalKey,
-                                groups.validGroups().get(suspiciousGroupValidKey),
-                                groups.validGroups());
-                        toBeRemoved.add(suspiciousGroupValidKey);
-                    }
+        // this is a suspicious group, only one entry
+        for (String suspiciousGroupValidKey : singleKeys) {
+            for (String normalKey : groups.validGroups().keySet()) {
+                // for valid vats, if three triples differ, then the edit_distance is for sure > 1
+                // (not using two, because two triples can be affected by transposition)
+                if (allThreeSubtriplesDiffer(suspiciousGroupValidKey, normalKey)) {
+                    continue;
+                }
+                // check Damerau distance with the other key
+                // it's either transposition or 1 step substitution, since the keys are valid, no
+                // deletion or insertion
+                if (damerauAlgorithm
+                        .distance(suspiciousGroupValidKey, normalKey) == EDIT_DISTANCE) {
+                    System.out.println("Suspiciously similar groups will be merged: " + Util
+                            .formatNumberKey(normalKey, groups) + " " + "and" + " " + Util
+                            .formatNumberKey(suspiciousGroupValidKey, groups));
+                    // merge the groups
+                    groups.addRecordsToValidGroups(normalKey,
+                            groups.validGroups().get(suspiciousGroupValidKey));
+                    toBeRemoved.add(suspiciousGroupValidKey);
                 }
             }
         }
         for (String key : toBeRemoved) {
             groups.validGroups().remove(key);
         }
+    }
+
+    private boolean allThreeSubtriplesDiffer(String suspiciousGroupValidKey, String normalKey) {
+        return suspiciousGroupValidKey.substring(0, 3).hashCode() != normalKey.substring(0, 3)
+                .hashCode() && suspiciousGroupValidKey.substring(3, 6).hashCode() != normalKey
+                .substring(3, 6).hashCode() && suspiciousGroupValidKey.substring(6, 9)
+                .hashCode() != normalKey.substring(6, 9).hashCode();
     }
 
     /**
@@ -179,22 +178,6 @@ public class Grouping {
             }
         }
 
-    }
-
-    private void addRecordsToGroups(String vat, List<Record> newRecords,
-            HashMap<String, List<Record>> groups) {
-        List<Record> origRecordList = groups.get(vat);
-        if (origRecordList == null) {
-            origRecordList = new ArrayList<>();
-        }
-        origRecordList.addAll(newRecords);
-    }
-
-
-    private void addRecordToGroups(String vat, Record record,
-            HashMap<String, List<Record>> groups) {
-        List<Record> recordList = groups.computeIfAbsent(vat, k -> new ArrayList<>());
-        recordList.add(record);
     }
 
 

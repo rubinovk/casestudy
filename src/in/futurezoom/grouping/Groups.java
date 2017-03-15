@@ -8,16 +8,23 @@ import java.util.List;
  */
 public interface Groups {
 
+    HashMap<String, Integer> getVatFreqMap();
+
     HashMap<String, List<Record>> validGroups();
 
     HashMap<String, List<Record>> invalidGroups();
-
-
-    HashMap<String, Boolean> getValidInvalidVatMap();
 
     String getVatPrefix();
 
     String getVatRegex();
 
     int getVatNumLength();
+
+    void addRecordToValidGroups(String vat, Record record);
+
+    void addRecordToInvalidGroups(String vat, Record record);
+
+    void addRecordsToValidGroups(String vat, List<Record> recordsList);
+
+    void addRecordsToInvalidGroups(String vat, List<Record> recordsList);
 }

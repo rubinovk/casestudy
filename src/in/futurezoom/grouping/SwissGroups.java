@@ -1,5 +1,6 @@
 package in.futurezoom.grouping;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -17,11 +18,12 @@ public class SwissGroups implements Groups {
     private HashMap<String, List<Record>> validGroups = new HashMap<>();
     private HashMap<String, List<Record>> invalidGroups = new HashMap<>();
 
-    public HashMap<String, Boolean> getValidInvalidVatMap() {
-        return validInvalidVatMap;
+    @Override
+    public HashMap<String, Integer> getVatFreqMap() {
+        return vatFreqMap;
     }
 
-    private HashMap<String, Boolean> validInvalidVatMap = new HashMap<>();
+    private HashMap<String, Integer> vatFreqMap = new HashMap<>();
 
     public HashMap<String, List<Record>> validGroups() {
         return validGroups;
@@ -45,4 +47,46 @@ public class SwissGroups implements Groups {
     public int getVatNumLength() {
         return VAT_NUM_LENGH;
     }
+
+    @Override
+    public void addRecordToValidGroups(String vat, Record record) {
+        addRecordToGroups(vat, record, validGroups);
+        updateFrequencyMap(vat, 1);
+    }
+
+    @Override
+    public void addRecordToInvalidGroups(String vat, Record record) {
+        addRecordToGroups(vat, record, invalidGroups);
+    }
+
+    @Override
+    public void addRecordsToValidGroups(String vat, List<Record> recordsList) {
+        addRecordsToGroups(vat, recordsList, validGroups);
+        updateFrequencyMap(vat, recordsList.size());
+    }
+
+    @Override
+    public void addRecordsToInvalidGroups(String vat, List<Record> recordsList) {
+        addRecordsToGroups(vat, recordsList, invalidGroups);
+    }
+
+
+    private void updateFrequencyMap(String vat, int number) {
+        if (number > 0) {
+            vatFreqMap
+                    .put(vat, vatFreqMap.get(vat) == null ? number : vatFreqMap.get(vat) + number);
+        }
+    }
+
+    private void addRecordsToGroups(String vat, List<Record> newRecords,
+            HashMap<String, List<Record>> groups) {
+        groups.computeIfAbsent(vat, k -> new ArrayList<>()).addAll(newRecords);
+    }
+
+
+    private void addRecordToGroups(String vat, Record record,
+            HashMap<String, List<Record>> groups) {
+        groups.computeIfAbsent(vat, k -> new ArrayList<>()).add(record);
+    }
+
 }

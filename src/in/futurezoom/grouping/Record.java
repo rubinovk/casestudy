@@ -46,4 +46,9 @@ public class Record {
     public String getStartDate() {
         return start_date;
     }
+
+    @Override
+    public String toString() {
+        return vat + ", " + start_date + ", " + due_date + ", " + repayment_date + ", " + amount;
+    }
 }
